@@ -1,0 +1,6 @@
+# EDITOR
+.idea
+.vscode
+.gitignore
+
+test.js
