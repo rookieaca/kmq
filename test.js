@@ -1,5 +1,6 @@
 const Kmq = require('./index');
 const QueueConsumer = Kmq.Consumer;
+const Sender = Kmq.Sender;
 
 const consumer = new QueueConsumer();
 
@@ -58,6 +59,11 @@ app.consume('another.queue.test', consumer.handlers(), { durable: true }, { noAc
 app.start(process.env.AMQP_URL);
 app.on('success', () => {
     console.log('start success');
+
+    const sender = new Sender(process.env.AMQP_URL, 'queue.test', { durable: true });
+    sender.connect().then(() => {
+        sender.sendJSON({name: 'foo', pass:'bar'});
+    });
 });
 app.on('error', (e) => {
     console.log('default err handler', e);
