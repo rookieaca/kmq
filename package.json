@@ -1,6 +1,6 @@
 {
   "name": "kmq",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "amqp consumer app using koa middleware style handler.",
   "main": "index.js",
   "scripts": {
