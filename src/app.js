@@ -1,5 +1,9 @@
 const Emitter = require('events').EventEmitter;
 const amqplib = require('amqplib');
+const logger = require('./logger').loggerConsumer;
+
+const MAX_RETRIES = 20;
+const RETRY_INTERVAL_SECONDS = 5;
 
 class App extends Emitter {
     constructor() {
@@ -20,27 +24,33 @@ class App extends Emitter {
     }
 
     start(url) {
-        const connectServer = async () => {
-            const conn = await amqplib.connect(url);
-            const ch = await conn.createChannel();
+        this.url = url;
+        return this._connect();
+    }
 
-            this.conn = conn;
-            this.ch = ch;
+    async _connect() {
+        const conn = await amqplib.connect(this.url);
+        this.retries = 0;
+        conn.on('close', this._onConnectionClose.bind(this));
 
-            const adapt = (func) => {
-                return (msg) => {
-                    func(this._createContext(msg)).catch(e => this._onError(e));
-                }
-            };
+        const ch = await conn.createChannel();
 
-            for (let qName in this.queues) {
-                const q = this.queues[qName];
-                await ch.assertQueue(qName, q.assertQueueOptions);
-                await ch.consume(qName, adapt(q.handler), q.consumeOptions);
+        this.conn = conn;
+        this.ch = ch;
+
+        const adapt = (func) => {
+            return (msg) => {
+                func(this._createContext(msg)).catch(e => this._onError(e));
             }
         };
 
-        connectServer().then(() => this.emit('success')).catch(e => this._onError(e));
+        for (let qName in this.queues) {
+            const q = this.queues[qName];
+            await ch.assertQueue(qName, q.assertQueueOptions);
+            await ch.consume(qName, adapt(q.handler), q.consumeOptions);
+        }
+
+        logger.info('connected');
     }
 
     _createContext(msg) {
@@ -55,6 +65,26 @@ class App extends Emitter {
 
     _onError(e) {
         this.emit('error', e);
+    }
+
+    _onConnectionClose() {
+        this._reconnect();
+    }
+
+    _reconnect() {
+        logger.info('reconnecting');
+        setTimeout(async () => {
+            try {
+                await this._connect();
+            } catch (e) {
+                if (++this.retries !== MAX_RETRIES)
+                    this._reconnect();
+                else {
+                    logger.error("Can not connect to server");
+                    process.exit(1);
+                }
+            }
+        }, RETRY_INTERVAL_SECONDS * 1000);
     }
 }
 

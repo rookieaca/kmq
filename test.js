@@ -56,15 +56,22 @@ app.consume(
     );
 app.consume('another.queue.test', consumer.handlers(), { durable: true }, { noAck: true });
 
-app.start(process.env.AMQP_URL);
-app.on('success', () => {
-    console.log('start success');
-
+app.start(process.env.AMQP_URL).then(() => {
     const sender = new Sender(process.env.AMQP_URL, 'queue.test', { durable: true });
     sender.connect().then(() => {
         sender.sendJSON({name: 'foo', pass:'bar'});
     });
+}).catch(err => {
+    console.log('eeee', err);
 });
+// app.on('success', () => {
+//     console.log('start success');
+//
+//     const sender = new Sender(process.env.AMQP_URL, 'queue.test', { durable: true });
+//     sender.connect().then(() => {
+//         sender.sendJSON({name: 'foo', pass:'bar'});
+//     });
+// });
 app.on('error', (e) => {
     console.log('default err handler', e);
 });
