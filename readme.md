@@ -6,6 +6,7 @@ amqp consumer app using koa middleware style handler.
 
 const Kmq = require('kmq');
 const QueueConsumer = Kmq.Consumer;
+const Sender = Kmq.Sender;
 
 const consumer = new QueueConsumer();
 
@@ -61,13 +62,20 @@ app.consume(
     );
 app.consume('another.queue.test', consumer.handlers(), { durable: true }, { noAck: true });
 
-app.start('amqp://username:password@your.amqp.server.host:5672/');
-app.on('success', () => {
+app.start(process.env.AMQP_URL).then(() => {
     console.log('start success');
+    const sender = new Sender(process.env.AMQP_URL, 'queue.test', { durable: true });
+    sender.connect().then(() => {
+        sender.sendJSON({name: 'foo', pass:'bar'});
+    });
+}).catch(err => {
+    console.log('start fail', err);
 });
+
 app.on('error', (e) => {
     console.log('default err handler', e);
 });
+
 
 
 ```

@@ -64,14 +64,7 @@ app.start(process.env.AMQP_URL).then(() => {
 }).catch(err => {
     console.log('eeee', err);
 });
-// app.on('success', () => {
-//     console.log('start success');
-//
-//     const sender = new Sender(process.env.AMQP_URL, 'queue.test', { durable: true });
-//     sender.connect().then(() => {
-//         sender.sendJSON({name: 'foo', pass:'bar'});
-//     });
-// });
+
 app.on('error', (e) => {
     console.log('default err handler', e);
 });
