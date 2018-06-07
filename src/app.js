@@ -32,6 +32,7 @@ class App extends Emitter {
         const conn = await amqplib.connect(this.url);
         this.retries = 0;
         conn.on('close', this._onConnectionClose.bind(this));
+        conn.on('error', this._onError.bind(this));
 
         const ch = await conn.createChannel();
 
